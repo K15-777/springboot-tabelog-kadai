@@ -22,4 +22,7 @@ public interface ShopRepository extends JpaRepository<Shop, Integer> {
     public Page<Shop> findByCategoryIdOrderByLowestPriceAsc(Integer categoryId, Pageable pageable);
 	
 	public List<Shop> findTop10ByOrderByCreatedAtDesc();
+
+	// カテゴリ削除前に、そのカテゴリを使用している店舗が存在するか確認する用
+	public boolean existsByCategoryId(Integer categoryId);
 }

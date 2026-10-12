@@ -16,6 +16,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.example.nagoyameshi.entity.User;
@@ -68,6 +69,31 @@ public class SubscriptionController {
 		model.addAttribute("user", user);
 
 		return "subscription/cancel";
+	}
+
+	// Stripe Checkout完了後のリダイレクト先。
+	// Webhookが本番環境で届かない場合でも確実にDBへ反映されるよう、ここでセッションを同期的に検証する
+	@GetMapping("/complete")
+	public String complete(@AuthenticationPrincipal UserDetailsImpl userDetailsImpl,
+			@RequestParam(name = "session_id", required = false) String sessionId,
+			HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) {
+		if (sessionId != null && !sessionId.isBlank()) {
+			stripeService.confirmCheckoutSession(sessionId);
+		}
+
+		// DB更新直後にログインセッションの認証情報（subscriberの状態）も最新化する
+		User user = userRepository.getReferenceById(userDetailsImpl.getUser().getId());
+
+		UserDetails refreshedUserDetails = userDetailsServiceImpl.loadUserByUsername(user.getEmail());
+		UsernamePasswordAuthenticationToken newAuthentication = new UsernamePasswordAuthenticationToken(
+				refreshedUserDetails, null, refreshedUserDetails.getAuthorities());
+
+		SecurityContext context = SecurityContextHolder.createEmptyContext();
+		context.setAuthentication(newAuthentication);
+		SecurityContextHolder.setContext(context);
+		securityContextRepository.saveContext(context, httpServletRequest, httpServletResponse);
+
+		return "redirect:/user?subscribed";
 	}
 
 	@PostMapping("/delete")

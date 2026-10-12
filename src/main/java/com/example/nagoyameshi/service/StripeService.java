@@ -53,7 +53,9 @@ public class StripeService {
                                 .setPrice(premiumPlanId)
                                 .setQuantity(1L)
                                 .build())
-                .setSuccessUrl(baseUrl + "/user?subscribed")
+                // Webhookが本番環境で届かない（URL未登録／secret不一致等）場合でも確実に反映されるよう、
+                // 決済完了後のリダイレクト先でCheckoutセッションIDを使って同期的に検証・反映する
+                .setSuccessUrl(baseUrl + "/subscription/complete?session_id={CHECKOUT_SESSION_ID}")
                 .setCancelUrl(baseUrl + "/subscription/register")
                 .putMetadata("userId", user.getId().toString());
 
@@ -74,7 +76,6 @@ public class StripeService {
     }
 
  // Webhookから呼ばれる：Checkoutセッション完了時にDBを更新する
- // Webhookから呼ばれる：Checkoutセッション完了時にDBを更新する
     public void processCheckoutSessionCompleted(Event event) {
         Optional<StripeObject> optionalStripeObject = event.getDataObjectDeserializer().getObject();
 
@@ -86,6 +87,36 @@ public class StripeService {
 
         Session session = (Session) stripeObject;
 
+        applySessionToUser(session);
+
+        System.out.println("有料プラン登録処理が成功しました（Webhook経由）。");
+    }
+
+    // 決済完了後のリダイレクト（success_url）から呼ばれる：
+    // Webhookが本番環境で届かないケース（URL未登録・secret不一致・ネットワーク問題等）に備えて、
+    // Checkoutセッションを直接Stripe APIから取得して同期的にDBへ反映するフォールバック処理
+    public void confirmCheckoutSession(String sessionId) {
+        Stripe.apiKey = stripeApiKey;
+
+        if (sessionId == null || sessionId.isBlank()) {
+            return;
+        }
+
+        try {
+            Session session = Session.retrieve(sessionId);
+
+            // 支払いが完了している場合のみ反映する
+            if ("complete".equals(session.getStatus()) || "paid".equals(session.getPaymentStatus())) {
+                applySessionToUser(session);
+                System.out.println("有料プラン登録処理が成功しました（リダイレクト経由の同期確認）。");
+            }
+        } catch (StripeException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // CheckoutセッションからuserIdとstripeCustomerIdを取り出し、DBへ反映する（Webhook/同期確認の共通処理）
+    private void applySessionToUser(Session session) {
         String userIdString = session.getMetadata().get("userId");
         String stripeCustomerId = session.getCustomer();
 
@@ -99,8 +130,6 @@ public class StripeService {
 
         userService.saveStripeCustomerId(user, stripeCustomerId);
         userService.registerSubscriber(user);
-
-        System.out.println("有料プラン登録処理が成功しました。userId=" + userId);
     }
 
     // 有料プランの解約（Checkoutを使わず直接APIで解約する）

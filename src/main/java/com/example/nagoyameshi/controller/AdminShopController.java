@@ -117,7 +117,7 @@ public class AdminShopController {
     
     @PostMapping("/{id}/delete")
     public String delete(@PathVariable(name = "id") Integer id, RedirectAttributes redirectAttributes) {
-    	shopRepository.deleteById(id);
+    	shopService.delete(id);
     	
     	redirectAttributes.addFlashAttribute("successMessage", "店舗を削除しました。");
     	

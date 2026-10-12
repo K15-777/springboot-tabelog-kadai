@@ -14,4 +14,7 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Integer> {
 
 	// ログイン中のユーザーのお気に入り一覧を取得（ページネーション付き）
 	public Page<Favorite> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
+
+	// 店舗削除前に、関連するお気に入りを一括削除する用
+	public void deleteByShopId(Integer shopId);
 }

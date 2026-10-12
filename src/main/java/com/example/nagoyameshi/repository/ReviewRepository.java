@@ -19,4 +19,7 @@ public interface ReviewRepository extends JpaRepository<Review, Integer> {
 
 	// 特定ユーザーがその店舗にすでにレビューしているか確認する用
 	public Review findFirstByShopAndUser(Shop shop, User user);
+
+	// 店舗削除前に、関連するレビューを一括削除する用
+	public void deleteByShopId(Integer shopId);
 }

@@ -15,15 +15,25 @@ import com.example.nagoyameshi.entity.Category;
 import com.example.nagoyameshi.entity.Shop;
 import com.example.nagoyameshi.form.ShopEditForm;
 import com.example.nagoyameshi.form.ShopRegisterForm;
+import com.example.nagoyameshi.repository.FavoriteRepository;
+import com.example.nagoyameshi.repository.ReservationRepository;
+import com.example.nagoyameshi.repository.ReviewRepository;
 import com.example.nagoyameshi.repository.ShopRepository;
 
 @Service
 public class ShopService {
 	private final ShopRepository shopRepository;
+	private final ReservationRepository reservationRepository;
+	private final ReviewRepository reviewRepository;
+	private final FavoriteRepository favoriteRepository;
 
 
-	public ShopService(ShopRepository shopRepository) {
+	public ShopService(ShopRepository shopRepository, ReservationRepository reservationRepository,
+			ReviewRepository reviewRepository, FavoriteRepository favoriteRepository) {
 	    this.shopRepository = shopRepository;
+	    this.reservationRepository = reservationRepository;
+	    this.reviewRepository = reviewRepository;
+	    this.favoriteRepository = favoriteRepository;
 	}
 
 	@Transactional
@@ -76,6 +86,16 @@ public class ShopService {
 		shop.setSeatingCapacity(shopEditForm.getSeatingCapacity());
 
 		shopRepository.save(shop);
+	}
+
+	// 店舗を削除する
+	// 外部キー制約違反を避けるため、先に関連するレビュー・お気に入り・予約を削除してから店舗本体を削除する
+	@Transactional
+	public void delete(Integer id) {
+		reservationRepository.deleteByShopId(id);
+		reviewRepository.deleteByShopId(id);
+		favoriteRepository.deleteByShopId(id);
+		shopRepository.deleteById(id);
 	}
 
 	// UUIDで生成したファイル名を返す
