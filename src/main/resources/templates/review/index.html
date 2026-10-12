@@ -35,7 +35,8 @@
                                             <h5 class="card-title mb-0" th:text="${review.getUser().getName()}"></h5>
 
                                             <!-- ログイン中の投稿者本人にのみ編集・削除を表示 -->
-                                            <div sec:authorize="isAuthenticated()"
+                                            <!-- isAuthenticated()だと管理者ログイン時にも真になりprincipal.userで例外になるため、一般会員限定(hasRole)にする -->
+                                            <div sec:authorize="hasRole('ROLE_GENERAL')"
                                                 th:if="${#authentication.principal.user.id == review.getUser().getId()}">
                                                 <a th:href="@{/shops/__${shop.getId()}__/review/__${review.getId()}__/edit}"
                                                     class="me-2">編集</a>

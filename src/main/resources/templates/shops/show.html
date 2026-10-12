@@ -27,7 +27,8 @@
                         </nav>
 
                         <!-- お気に入りボタン（ログイン時かつ有料会員のみ表示） -->
-                        <div sec:authorize="isAuthenticated()" th:if="${#authentication.principal.user.subscriber}"
+                        <!-- isAuthenticated()だと管理者ログイン時にも真になりprincipal.userで例外になるため、一般会員限定(hasRole)にする -->
+                        <div sec:authorize="hasRole('ROLE_GENERAL')" th:if="${#authentication.principal.user.subscriber}"
                             class="text-end mb-2">
                             <!-- 登録済みの場合（解除リンクとフォーム） -->
                             <div th:if="${isFavorite}">
@@ -153,8 +154,9 @@
                                     </div>
                                 </div>
 
-                                <!-- 2. ログイン済みの場合 -->
-                                <div sec:authorize="isAuthenticated()" class="col-lg-4 px-0 ps-lg-4 mb-4">
+                                <!-- 2. ログイン済み（一般会員）の場合 -->
+                                <!-- isAuthenticated()だと管理者ログイン時にも真になりprincipal.userで例外になるため、一般会員限定(hasRole)にする -->
+                                <div sec:authorize="hasRole('ROLE_GENERAL')" class="col-lg-4 px-0 ps-lg-4 mb-4">
                                     <!-- 2-A. 有料会員（subscriber == true）：予約フォームを表示 -->
                                     <div th:if="${#authentication.principal.user.subscriber}" class="card">
                                         <div class="card-body">
@@ -216,7 +218,8 @@
                             <h2 class="mb-4 text-center">レビュー</h2>
 
                             <!-- 有料会員かつ未投稿の場合のみ投稿ボタンを表示 -->
-                            <div sec:authorize="isAuthenticated()"
+                            <!-- isAuthenticated()だと管理者ログイン時にも真になりprincipal.userで例外になるため、一般会員限定(hasRole)にする -->
+                            <div sec:authorize="hasRole('ROLE_GENERAL')"
                                 th:if="${#authentication.principal.user.subscriber && !hasUserReviewed}"
                                 class="text-center mb-4">
                                 <a th:href="@{/shops/__${shop.getId()}__/reviews/register}"
@@ -237,7 +240,8 @@
                                                 </h5>
 
                                                 <!-- ログイン中の本人にのみ編集・削除を表示 -->
-                                                <div sec:authorize="isAuthenticated()"
+                                                <!-- isAuthenticated()だと管理者ログイン時にも真になりprincipal.userで例外になるため、一般会員限定(hasRole)にする -->
+                                                <div sec:authorize="hasRole('ROLE_GENERAL')"
                                                     th:if="${#authentication.principal.user.id == review.getUser().getId()}">
                                                     <a th:href="@{/shops/__${shop.getId()}__/reviews/__${review.getId()}__/edit}"
                                                         class="me-2">編集</a>
